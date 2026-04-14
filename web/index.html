@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>superchain-trace — cross-chain message debugger</title>
+<meta name="description" content="Trace, debug, and simulate OP Superchain interop messages across Optimism, Base, Zora, Mode. By kcolbchain." />
+<style>
+  :root{--bg:#0b0d10;--panel:#13161b;--panel-2:#0f1216;--border:#23272f;--fg:#e7e9ee;--muted:#8a93a3;--accent:#ff0420;--ok:#34d399;--warn:#fbbf24;--hot:#f87171;--info:#7dd3fc;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  header{padding:22px 32px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px}header h1{margin:0;font-size:20px}header h1 .dot{color:var(--accent)}header p{margin:0;color:var(--muted);font-size:13px}
+  main{padding:24px 32px 80px 32px;max-width:1000px;margin:0 auto}
+  h2{font-size:16px;margin:28px 0 10px 0}h2:first-of-type{margin-top:0}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .panel h3{margin:0 0 8px 0;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .field{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .field label{color:var(--muted);font-size:12px;width:100px}
+  .field input,.field select{background:var(--panel-2);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font:inherit;font-size:13px;flex:1}
+  .field select{flex:initial;width:150px}
+  button.trace{background:var(--accent);color:#fff;border:0;padding:8px 18px;border-radius:6px;cursor:pointer;font:inherit;font-weight:600}button.trace:hover{opacity:.9}
+  .lifecycle{display:flex;gap:0;margin:18px 0;flex-wrap:wrap}
+  .step{flex:1;min-width:140px;padding:12px 14px;background:var(--panel-2);border:1px solid var(--border);position:relative}
+  .step:first-child{border-radius:8px 0 0 8px}.step:last-child{border-radius:0 8px 8px 0}
+  .step .num{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .step .label{font-size:13px;font-weight:600;margin:4px 0 2px 0}
+  .step .detail{color:var(--muted);font-size:11.5px;font-family:var(--mono)}
+  .step.done{border-color:var(--ok)}.step.done .num{color:var(--ok)}.step.done .label{color:var(--ok)}
+  .step.active{border-color:var(--warn);background:#2a220e}.step.active .num{color:var(--warn)}.step.active .label{color:var(--warn)}
+  .step.pending .label{color:var(--muted)}
+  .arrow{flex:0 0 auto;display:flex;align-items:center;color:var(--muted);font-size:18px;padding:0 2px}
+  .chains{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+  .chain{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+  .chain .name{font-weight:600;font-size:14px}
+  .chain .id{color:var(--muted);font-family:var(--mono);font-size:11px}
+  pre{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;overflow-x:auto;line-height:1.55;margin:10px 0 0 0}
+  .kw{color:#c4b5fd}.str{color:#86efac}.com{color:var(--muted);font-style:italic}.prop{color:var(--info)}.fn{color:var(--warn)}
+  footer{padding:20px 32px;color:var(--muted);font-size:12px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>superchain-trace<span class="dot">.</span> <span style="color:var(--muted);font-weight:400">cross-chain message debugger</span></h1>
+    <p>Trace interop messages across the OP Superchain. Lifecycle view: submitted → indexed → safe → finalized → relayed.</p>
+  </div>
+  <div style="display:flex;gap:14px;align-items:center">
+    <a href="https://github.com/kcolbchain/superchain-trace">source</a>
+    <a href="https://docs.kcolbchain.com/superchain-trace/">docs</a>
+  </div>
+</header>
+<main>
+
+<h2>Trace a message</h2>
+<div class="panel">
+  <div class="field"><label>Source chain</label><select id="srcChain"><option value="op">Optimism</option><option value="base" selected>Base</option><option value="zora">Zora</option><option value="mode">Mode</option></select></div>
+  <div class="field"><label>Tx hash</label><input id="txHash" type="text" placeholder="0xabc123... (or leave blank for a demo trace)" /></div>
+  <div class="field"><label>Dest chain</label><select id="dstChain"><option value="op" selected>Optimism</option><option value="base">Base</option><option value="zora">Zora</option><option value="mode">Mode</option></select></div>
+  <div class="field"><label></label><button class="trace" id="traceBtn">Trace message</button></div>
+</div>
+
+<h2>Message lifecycle</h2>
+<div id="lifecyclePanel" class="panel">
+  <p style="margin:0;color:var(--muted);font-size:12.5px">Click "Trace message" to simulate a lifecycle. In the real CLI, this calls OP-Supervisor + destination RPC to resolve each step.</p>
+</div>
+
+<h2>Trace output</h2>
+<div class="panel">
+  <pre id="output"><span class="com">// trace output will appear here</span></pre>
+</div>
+
+<h2>Supported chains</h2>
+<div class="chains" id="chains"></div>
+
+<h2>CLI reference</h2>
+<div class="panel">
+  <pre><span class="com"># Trace a message by initiating tx hash</span>
+<span class="fn">superchain-trace</span> trace <span class="str">0xabc123...</span> --chain <span class="str">base</span>
+
+<span class="com"># Check message safety level</span>
+<span class="fn">superchain-trace</span> status <span class="str">0xdef456...</span> --chain <span class="str">op</span>
+
+<span class="com"># List supported chains</span>
+<span class="fn">superchain-trace</span> chains
+
+<span class="com"># JSON output for agent consumption</span>
+<span class="fn">superchain-trace</span> trace <span class="str">0xabc...</span> --format <span class="str">json</span></pre>
+</div>
+
+</main>
+<footer>
+  This dashboard is a teaching simulator — the real tool queries OP-Supervisor and chain RPCs. Install the CLI: <code>cargo install --git https://github.com/kcolbchain/superchain-trace</code>.
+  Integration tests with <a href="https://github.com/ethereum-optimism/supersim">supersim</a> are tracked in <a href="https://github.com/kcolbchain/superchain-trace/issues/1">issue #1</a>.
+</footer>
+
+<script>
+const CHAINS = [
+  { name: "Optimism", id: "op", chainId: 10, color: "#FF0420" },
+  { name: "Base", id: "base", chainId: 8453, color: "#0052FF" },
+  { name: "Zora", id: "zora", chainId: 7777777, color: "#A855F7" },
+  { name: "Mode", id: "mode", chainId: 34443, color: "#DFFE00" },
+  { name: "Fraxtal", id: "fraxtal", chainId: 252, color: "#808080" },
+  { name: "Cyber", id: "cyber", chainId: 7560, color: "#00D4FF" },
+];
+document.getElementById("chains").innerHTML = CHAINS.map(c =>
+  `<div class="chain" style="border-top:2px solid ${c.color}"><div class="name">${c.name}</div><div class="id">chain ${c.chainId}</div></div>`
+).join("");
+
+const STEPS = [
+  { num: "1", label: "Submitted", key: "submitted" },
+  { num: "2", label: "Indexed by OP-Supervisor", key: "indexed" },
+  { num: "3", label: "Safety: unsafe → safe", key: "safe" },
+  { num: "4", label: "Safety: safe → finalized", key: "finalized" },
+  { num: "5", label: "Relayed on destination", key: "relayed" },
+];
+
+function renderLifecycle(reachedStep) {
+  const panel = document.getElementById("lifecyclePanel");
+  panel.innerHTML = '<div class="lifecycle">' + STEPS.map((s, i) => {
+    const cls = i < reachedStep ? "done" : i === reachedStep ? "active" : "pending";
+    return (i > 0 ? '<div class="arrow">→</div>' : '') +
+      `<div class="step ${cls}"><div class="num">step ${s.num}</div><div class="label">${s.label}</div><div class="detail">${cls === "done" ? "✓ complete" : cls === "active" ? "⏳ in progress…" : "pending"}</div></div>`;
+  }).join("") + '</div>';
+}
+
+function fakeHash() { return "0x" + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join(""); }
+
+async function traceMessage() {
+  const src = document.getElementById("srcChain").value;
+  const dst = document.getElementById("dstChain").value;
+  const tx = document.getElementById("txHash").value || fakeHash();
+  const output = document.getElementById("output");
+
+  output.innerHTML = `<span class="com">// tracing ${tx.slice(0,10)}... from ${src} → ${dst}</span>\n`;
+
+  for (let i = 0; i < STEPS.length; i++) {
+    renderLifecycle(i);
+    const delay = 400 + Math.random() * 600;
+    await new Promise(r => setTimeout(r, delay));
+
+    const ts = new Date().toISOString();
+    if (i === 0) {
+      output.innerHTML += `\n<span class="prop">source_tx</span>:  <span class="str">${tx}</span>\n<span class="prop">source</span>:     <span class="str">${src}</span> (chain ${CHAINS.find(c=>c.id===src).chainId})\n<span class="prop">dest</span>:       <span class="str">${dst}</span> (chain ${CHAINS.find(c=>c.id===dst).chainId})\n<span class="prop">timestamp</span>:  <span class="str">${ts}</span>\n`;
+    } else if (i === 1) {
+      output.innerHTML += `<span class="prop">op_supervisor</span>: log indexed at <span class="str">${ts}</span>\n<span class="prop">log_index</span>:    <span class="str">${Math.floor(Math.random()*50)}</span>\n`;
+    } else if (i === 2) {
+      output.innerHTML += `<span class="prop">safety</span>:      <span class="fn">unsafe</span> → <span class="fn">safe</span> at <span class="str">${ts}</span>\n`;
+    } else if (i === 3) {
+      output.innerHTML += `<span class="prop">safety</span>:      <span class="fn">safe</span> → <span class="fn">finalized</span> at <span class="str">${ts}</span>\n`;
+    } else if (i === 4) {
+      const relayTx = fakeHash();
+      output.innerHTML += `<span class="prop">relay_tx</span>:    <span class="str">${relayTx}</span>\n<span class="prop">status</span>:      <span style="color:var(--ok)">✓ relayed and executed</span>\n<span class="prop">gas_used</span>:    <span class="str">${(80000 + Math.floor(Math.random()*40000)).toLocaleString()}</span>\n`;
+    }
+  }
+  renderLifecycle(STEPS.length);
+  output.innerHTML += `\n<span class="com">// trace complete — all steps resolved</span>\n`;
+}
+
+document.getElementById("traceBtn").addEventListener("click", traceMessage);
+renderLifecycle(-1);
+</script>
+</body>
+</html>
