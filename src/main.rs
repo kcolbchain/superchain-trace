@@ -1,14 +1,12 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-
-mod chains;
-mod display;
-mod supervisor;
-mod tracer;
-mod types;
+use superchain_trace::{chains, display, supervisor, tracer};
 
 #[derive(Parser)]
-#[command(name = "superchain-trace", about = "Cross-chain message debugger for the OP Superchain")]
+#[command(
+    name = "superchain-trace",
+    about = "Cross-chain message debugger for the OP Superchain"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

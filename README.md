@@ -67,6 +67,21 @@ Supervisor client — queries OP-Supervisor for safety level
 Display — pretty terminal output with lifecycle visualization
 ```
 
+## Supersim integration tests
+
+The repository includes an ignored integration test for local OP Stack cross-chain message traces against [ethereum-optimism/supersim](https://github.com/ethereum-optimism/supersim).
+
+```bash
+# Start supersim in another terminal and submit a source-chain message tx, then:
+export SUPERSIM_RPC_URL=http://127.0.0.1:9545
+export SUPERSIM_CHAIN_ID=901
+export SUPERSIM_CHAIN_NAME=supersim-op
+export SUPERSIM_TRACE_TX_HASH=0x...
+cargo test --test supersim_trace -- --ignored
+```
+
+The test is ignored by default so regular CI and local unit tests do not require a running supersim process or funded dev account.
+
 ## License
 
 MIT
