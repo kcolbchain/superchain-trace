@@ -1,4 +1,5 @@
 # superchain-trace
+[![repo](https://img.shields.io/badge/repo-superchain-trace-blue)](https://github.com/kcolbchain/superchain-trace)
 
 Cross-chain message debugger for the OP Superchain. By [kcolbchain](https://kcolbchain.com) (est. 2015).
 
