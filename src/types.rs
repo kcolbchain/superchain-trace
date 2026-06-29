@@ -10,12 +10,12 @@ pub struct ChainInfo {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessageStatus {
-    Initiated,   // Tx sent on source chain
-    Indexed,     // OP-Supervisor has indexed the log
-    Safe,        // Message reached safe safety level
-    Finalized,   // Message is finalized on L1
-    Executed,    // Relayed and executed on destination chain
-    Failed,      // Execution failed on destination
+    Initiated, // Tx sent on source chain
+    Indexed,   // OP-Supervisor has indexed the log
+    Safe,      // Message reached safe safety level
+    Finalized, // Message is finalized on L1
+    Executed,  // Relayed and executed on destination chain
+    Failed,    // Execution failed on destination
     Unknown,
 }
 

@@ -98,13 +98,12 @@ async fn supersim_rpc_connectivity() {
 
     assert!(resp.status().is_success(), "RPC should return 200");
 
-    let json: serde_json::Value = resp
-        .json()
-        .await
-        .expect("response should be valid JSON");
+    let json: serde_json::Value = resp.json().await.expect("response should be valid JSON");
 
     assert_eq!(json["jsonrpc"], "2.0");
-    let chain_id_hex = json["result"].as_str().expect("result should be a hex string");
+    let chain_id_hex = json["result"]
+        .as_str()
+        .expect("result should be a hex string");
     let chain_id = u64::from_str_radix(chain_id_hex.trim_start_matches("0x"), 16)
         .expect("chain ID should be a valid hex number");
     assert!(chain_id > 0, "chain ID should be non-zero");
@@ -131,13 +130,23 @@ async fn supersim_multichain_connectivity() {
             .await
             .unwrap_or_else(|e| panic!("RPC {} should be reachable: {e}", chain.name));
 
-        assert!(resp.status().is_success(), "{} RPC should return 200", chain.name);
+        assert!(
+            resp.status().is_success(),
+            "{} RPC should return 200",
+            chain.name
+        );
 
         let json: serde_json::Value = resp.json().await.unwrap();
-        let block_hex = json["result"].as_str().expect("result should be a hex string");
+        let block_hex = json["result"]
+            .as_str()
+            .expect("result should be a hex string");
         let block_num = u64::from_str_radix(block_hex.trim_start_matches("0x"), 16)
             .expect("block number should be a valid hex");
-        assert!(block_num > 0, "{} should have mined at least block 0", chain.name);
+        assert!(
+            block_num > 0,
+            "{} should have mined at least block 0",
+            chain.name
+        );
     }
 }
 
@@ -150,5 +159,8 @@ async fn supersim_supervisor_status() {
         .expect("supervisor check should not error");
 
     assert_eq!(result.msg_id, "test-msg-001");
-    assert!(!result.details.is_empty(), "status details should be non-empty");
+    assert!(
+        !result.details.is_empty(),
+        "status details should be non-empty"
+    );
 }

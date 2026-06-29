@@ -40,5 +40,10 @@ pub fn get_chain(name: &str) -> Result<ChainInfo> {
     all_chains()
         .into_iter()
         .find(|c| c.name == name)
-        .ok_or_else(|| eyre!("Unknown chain: {}. Use `superchain-trace chains` to list.", name))
+        .ok_or_else(|| {
+            eyre!(
+                "Unknown chain: {}. Use `superchain-trace chains` to list.",
+                name
+            )
+        })
 }

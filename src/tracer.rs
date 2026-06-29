@@ -4,7 +4,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 
 /// L2ToL2CrossDomainMessenger event topic (SentMessage)
-const SENT_MESSAGE_TOPIC: &str =
+pub const SENT_MESSAGE_TOPIC: &str =
     "0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320";
 
 pub async fn trace_message(tx_hash: &str, chain: &ChainInfo) -> Result<TraceResult> {
@@ -13,6 +13,17 @@ pub async fn trace_message(tx_hash: &str, chain: &ChainInfo) -> Result<TraceResu
     // Fetch transaction receipt
     let receipt = fetch_receipt(&client, &chain.rpc_url, tx_hash).await?;
 
+    decode_trace(tx_hash, chain, &receipt)
+}
+
+/// Decode a fetched `eth_getTransactionReceipt` result into a [`TraceResult`].
+///
+/// This is the pure, network-free core of [`trace_message`]: it parses the
+/// receipt JSON, detects an `L2ToL2CrossDomainMessenger` `SentMessage` log,
+/// resolves the destination chain, and builds the message lifecycle. Keeping
+/// it separate from the RPC fetch lets the parse/decode and lifecycle
+/// state-transition logic be exercised against fixtures without a live node.
+pub fn decode_trace(tx_hash: &str, chain: &ChainInfo, receipt: &Value) -> Result<TraceResult> {
     let block_hex = receipt["blockNumber"]
         .as_str()
         .ok_or_else(|| eyre!("No block number in receipt"))?;
@@ -27,9 +38,7 @@ pub async fn trace_message(tx_hash: &str, chain: &ChainInfo) -> Result<TraceResu
     let cross_chain_log = logs.iter().find(|log| {
         log["topics"]
             .as_array()
-            .map(|topics| {
-                topics.first().and_then(|t| t.as_str()) == Some(SENT_MESSAGE_TOPIC)
-            })
+            .map(|topics| topics.first().and_then(|t| t.as_str()) == Some(SENT_MESSAGE_TOPIC))
             .unwrap_or(false)
     });
 
@@ -69,7 +78,8 @@ pub async fn trace_message(tx_hash: &str, chain: &ChainInfo) -> Result<TraceResu
         if status_code == "0x1" {
             lifecycle.push(LifecycleStep {
                 status: MessageStatus::Unknown,
-                description: "No cross-chain message event found. This may be a regular transaction.".into(),
+                description:
+                    "No cross-chain message event found. This may be a regular transaction.".into(),
                 tx_hash: None,
                 chain: chain.name.clone(),
                 timestamp: None,

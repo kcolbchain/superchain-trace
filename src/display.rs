@@ -31,9 +31,18 @@ pub fn print_trace(result: &TraceResult) {
             MessageStatus::Unknown => "?".dimmed(),
         };
 
-        let connector = if i < result.lifecycle.len() - 1 { "│" } else { " " };
+        let connector = if i < result.lifecycle.len() - 1 {
+            "│"
+        } else {
+            " "
+        };
 
-        println!("  {} {} {}", icon, step.status.to_string().bold(), step.description.dimmed());
+        println!(
+            "  {} {} {}",
+            icon,
+            step.status.to_string().bold(),
+            step.description.dimmed()
+        );
         if let Some(ref tx) = step.tx_hash {
             println!("  {}   tx: {}", connector.dimmed(), tx.cyan());
         }
